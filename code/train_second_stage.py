@@ -4,13 +4,13 @@ import torch.backends.cudnn as cudnn
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from model_train import G_NET, Encoder, Dis_Dis, FeatureExtractor 
+from model_train import G_NET, Encoder, Dis_Dis, FeatureExtractor
 from datasets import get_dataloader
 import random
 import torch.nn.functional as F
 from utils import *
 cudnn.benchmark = True
-device = torch.device("cuda:" + cfg.GPU_ID)
+device = torch.device(f"cuda:{cfg.GPU_ID}")
 
 
 
@@ -116,20 +116,20 @@ class Trainer(object):
     def train(self):
 
         # prepare net, optimizer and loss
-        self.netG, self.encoder, self.extractor, self.dis_dis = load_network()   
+        self.netG, self.encoder, self.extractor, self.dis_dis = load_network()
         self.netG.eval()
         self.encoder.eval()
 
-        self.optimizerEX, self.optimizerDD = define_optimizers(  self.extractor, self.dis_dis )    
-        self.RF_loss = nn.BCELoss() 
+        self.optimizerEX, self.optimizerDD = define_optimizers(  self.extractor, self.dis_dis )
+        self.RF_loss = nn.BCELoss()
         self.L1 = nn.L1Loss()
-       
+
 
         for epoch in range(cfg.TRAIN.SECOND_MAX_EPOCH):
           
 
             for data in self.dataloader:          
-                
+
                 # prepare data              
                 real_img, real_z, real_b, real_p, real_c   = self.prepare_data(data)
 
@@ -158,7 +158,7 @@ class Trainer(object):
                 (EX_loss+l1loss).backward()
                 self.optimizerEX.step()
 
-           
+
             # Save model&image for each epoch 
             self.extractor.eval()
             with torch.no_grad():   
@@ -166,9 +166,9 @@ class Trainer(object):
                 feat_p = self.extractor(self.fixed_image)
                 fake_imgs, fg_imgs, mk_imgs, fg_mk = self.netG( code_z, code_c, feat_p, code_b, 'feature')  
                 save_img_results(None, ( fake_imgs+fg_imgs+mk_imgs+fg_mk), epoch, self.image_dir )
-            self.extractor.train()      
-            save_model(  self.dis_dis  ,self.extractor, 0, self.model_dir )   
-            print( str(epoch)+'th epoch finished')
+            self.extractor.train()
+            save_model(  self.dis_dis  ,self.extractor, 0, self.model_dir )
+            print(f'{str(epoch)}th epoch finished')
 
 
 

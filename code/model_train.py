@@ -36,18 +36,16 @@ def child_to_parent(child_c_code, classes_child, classes_parent):
 # ############## G networks ################################################
 # Upsale the spatial size by a factor of 2
 def upBlock(in_planes, out_planes):
-    block = nn.Sequential(  nn.Upsample(scale_factor=2, mode='nearest'),
+    return nn.Sequential(  nn.Upsample(scale_factor=2, mode='nearest'),
                             conv3x3(in_planes, out_planes * 2),
                             nn.BatchNorm2d(out_planes * 2),
                             GLU()  )
-    return block
 
 
 def sameBlock(in_planes, out_planes):
-    block = nn.Sequential(  conv3x3(in_planes, out_planes * 2),
+    return nn.Sequential(  conv3x3(in_planes, out_planes * 2),
                             nn.BatchNorm2d(out_planes * 2),
                             GLU()   )
-    return block
 
 
 
@@ -142,9 +140,7 @@ class PARENT_STAGE(nn.Module):
         # 16*128*128
 
     def _make_layer(self,num_residual,ngf):
-        layers = []
-        for _ in range(num_residual):
-            layers.append( ResBlock(ngf) )
+        layers = [ResBlock(ngf) for _ in range(num_residual)]
         return nn.Sequential(*layers)
 
     def forward(self, z_input, input, which):        
@@ -184,9 +180,7 @@ class CHILD_STAGE(nn.Module):
         self.samesample = sameBlock(ngf*2, ngf)
 
     def _make_layer(self):
-        layers = []
-        for _ in range(self.num_residual):
-            layers.append( ResBlock(self.ngf*2) )
+        layers = [ResBlock(self.ngf*2) for _ in range(self.num_residual)]
         return nn.Sequential(*layers)
 
     def forward(self, h_code, code):
@@ -224,28 +218,21 @@ class G_NET(nn.Module):
 
     def forward(self, z_code, c_code, p_code, b_code, which, only=False):
 
-        fake_imgs = []  # Will contain [background image, parent image, child image]
-        fg_imgs = []  # Will contain [parent foreground, child foreground]
-        mk_imgs = []  # Will contain [parent mask, child mask]
-        fg_mk = []  # Will contain [masked parent foreground, masked child foreground]
-
         # Background stage
         temp = self.background_stage( z_code, b_code )
         fake_img1 = self.background_image( temp )  # Background image     
         fake_img1_126 = self.scale_fimg(fake_img1)
-        fake_imgs.append(fake_img1_126)
-
+        fake_imgs = [fake_img1_126]
         # Parent stage
-        p_temp = self.parent_stage( z_code, p_code, which ) 
+        p_temp = self.parent_stage( z_code, p_code, which )
         fake_img2_foreground = self.parent_image(p_temp)  # Parent foreground
         fake_img2_mask = self.parent_mask(p_temp)  # Parent mask
         fg_masked2 = fake_img2_foreground*fake_img2_mask # masked_parent        
         fake_img2 = fg_masked2 + fake_img1*(1-fake_img2_mask)  # Parent image
-        fg_mk.append(fg_masked2) 
+        fg_mk = [fg_masked2]
         fake_imgs.append(fake_img2)
-        fg_imgs.append(fake_img2_foreground)
-        mk_imgs.append(fake_img2_mask)
-
+        fg_imgs = [fake_img2_foreground]
+        mk_imgs = [fake_img2_mask]
         # Child stage
         temp = self.child_stage(p_temp, c_code)
         fake_img3_foreground = self.child_image(temp)  # Child foreground
@@ -256,7 +243,7 @@ class G_NET(nn.Module):
         fake_imgs.append(fake_img3)
         fg_imgs.append(fake_img3_foreground)
         mk_imgs.append(fake_img3_mask)
-        
+
         if only:
             return p_temp, fake_imgs[2]
 
@@ -346,7 +333,7 @@ class CHILD_D(nn.Module):
 ################################# Encoder ######################################
 
 def encode_parent_and_child_img(ndf, in_c=3):
-    encode_img = nn.Sequential(
+    return nn.Sequential(
         nn.Conv2d(in_c, ndf, 4, 2, 1, bias=False),
         nn.LeakyReLU(0.2, inplace=True),
         nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
@@ -359,21 +346,18 @@ def encode_parent_and_child_img(ndf, in_c=3):
         nn.BatchNorm2d(ndf * 8),
         nn.LeakyReLU(0.2, inplace=True)
     )
-    return encode_img
 
 def downBlock(in_planes, out_planes):
-    block = nn.Sequential(
+    return nn.Sequential(
         nn.Conv2d(in_planes, out_planes, 4, 2, 1, bias=False),
         nn.BatchNorm2d(out_planes),
         nn.LeakyReLU(0.2, inplace=True)
     )
-    return block
 
 def Block3x3_leakRelu(in_planes, out_planes):
-    block = nn.Sequential( conv3x3(in_planes, out_planes),
+    return nn.Sequential( conv3x3(in_planes, out_planes),
                            nn.BatchNorm2d(out_planes),
                            nn.LeakyReLU(0.2, inplace=True) )
-    return block
 
 
 

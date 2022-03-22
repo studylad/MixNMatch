@@ -43,11 +43,8 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
     if transform is not None:
         cimg = transform(cimg)
 
-    retf = []
-    retc = []
     re_cimg = transforms.Resize(imsize[1])(cimg)
-    retc.append(normalize(re_cimg))
-
+    retc = [normalize(re_cimg)]
     # We use full image to get background patches
 
     # We resize the full image to be 126 X 126 (instead of 128 X 128)  for the full coverage of the input (full) image by
@@ -84,14 +81,8 @@ def get_imgs(img_path, imsize, bbox=None, transform=None, normalize=None):
         warped_x1 = flipped_x1
         warped_x2 = flipped_x2
 
-    retf.append(normalize(crop_re_fimg))
-
-    warped_bbox = []
-    warped_bbox.append(warped_y1)
-    warped_bbox.append(warped_x1)
-    warped_bbox.append(warped_y2)
-    warped_bbox.append(warped_x2)
-
+    retf = [normalize(crop_re_fimg)]
+    warped_bbox = [warped_y1, warped_x1, warped_y2, warped_x2]
     return retf[0], retc[0], warped_bbox
 
 
@@ -104,7 +95,7 @@ class Dataset(data.Dataset):
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
         self.imsize = []
-        for i in range(cfg.TREE.BRANCH_NUM):
+        for _ in range(cfg.TREE.BRANCH_NUM):
             self.imsize.append(base_size)
             base_size = base_size * 2
 
@@ -134,7 +125,7 @@ class Dataset(data.Dataset):
         #print('Total filenames: ', len(filenames), filenames[0])
         filename_bbox = {img_file[:-4]: [] for img_file in filenames}
         numImgs = len(filenames)
-        for i in range(0, numImgs):
+        for i in range(numImgs):
             bbox = df_bounding_boxes.iloc[i][1:].tolist()
             key = filenames[i][:-4]
             filename_bbox[key] = bbox
@@ -151,12 +142,9 @@ class Dataset(data.Dataset):
 
     def prepair_training_pairs(self, index):
         key = self.filenames[index]
-        if self.bbox is not None:
-            bbox = self.bbox[key]
-        else:
-            bbox = None
+        bbox = self.bbox[key] if self.bbox is not None else None
         data_dir = self.data_dir
-        img_name = '%s/images/%s.jpg' % (data_dir, key)
+        img_name = f'{data_dir}/images/{key}.jpg'
 
 
         fimgs, cimgs, warped_bbox = get_imgs(img_name, self.imsize,
@@ -172,13 +160,10 @@ class Dataset(data.Dataset):
 
     def prepair_test_pairs(self, index):
         key = self.filenames[index]
-        if self.bbox is not None:
-            bbox = self.bbox[key]
-        else:
-            bbox = None
+        bbox = self.bbox[key] if self.bbox is not None else None
         data_dir = self.data_dir
         c_code = self.c_code[index, :, :]
-        img_name = '%s/images/%s.jpg' % (data_dir, key)
+        img_name = f'{data_dir}/images/{key}.jpg'
         _, imgs, _ = get_imgs(img_name, self.imsize,
                               bbox, self.transform, normalize=self.norm)
 
@@ -201,13 +186,19 @@ def get_dataloader(bs=None):
                                            transforms.RandomHorizontalFlip()])
 
     dataset = Dataset(cfg.DATA_DIR, base_size=cfg.TREE.BASE_SIZE, transform=image_transform)
-   
-    if bs == None:
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=cfg.TRAIN.BATCH_SIZE, drop_last=True, shuffle=True)
-    else:
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=bs, drop_last=True, shuffle=True)
 
-    return dataloader
+    return (
+        torch.utils.data.DataLoader(
+            dataset,
+            batch_size=cfg.TRAIN.BATCH_SIZE,
+            drop_last=True,
+            shuffle=True,
+        )
+        if bs is None
+        else torch.utils.data.DataLoader(
+            dataset, batch_size=bs, drop_last=True, shuffle=True
+        )
+    )
 
    
 
