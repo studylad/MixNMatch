@@ -72,8 +72,8 @@ def _merge_a_into_b(a, b):
 
     for k, v in a.items():   ######################old python: iteritems#############
         # a must specify keys that are in b
-        if not k in b:   ######################old python:  if not b.has_key(k):  #############
-            raise KeyError('{} is not a valid config key'.format(k))
+        if k not in b:   ######################old python:  if not b.has_key(k):  #############
+            raise KeyError(f'{k} is not a valid config key')
 
         # the types must match, too
         old_type = type(b[k])
@@ -81,16 +81,17 @@ def _merge_a_into_b(a, b):
             if isinstance(b[k], np.ndarray):
                 v = np.array(v, dtype=b[k].dtype)
             else:
-                raise ValueError(('Type mismatch ({} vs. {}) '
-                                  'for config key: {}').format(type(b[k]),
-                                                               type(v), k))
+                raise ValueError(
+                    f'Type mismatch ({type(b[k])} vs. {type(v)}) for config key: {k}'
+                )
+
 
         # recursively merge dicts
         if type(v) is edict:
             try:
                 _merge_a_into_b(a[k], b[k])
             except:
-                print('Error under config key: {}'.format(k))
+                print(f'Error under config key: {k}')
                 raise
         else:
             b[k] = v

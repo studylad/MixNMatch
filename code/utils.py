@@ -32,16 +32,12 @@ def make_output_dir():
     path = os.path.join(root_path, new_output)
     if os.path.exists(path):
         if len(args)==2 and args[1]=='-f': 
-            print('WARNING: experiment directory exists, it has been erased and recreated') 
-            shutil.rmtree(path)
-            os.makedirs(path)
+            print('WARNING: experiment directory exists, it has been erased and recreated')
         else:
             print('WARNING: experiment directory exists, it will be erased and recreated in 3s')
             time.sleep(3)
-            shutil.rmtree(path)
-            os.makedirs(path)
-    else:
-        os.makedirs(path)
+        shutil.rmtree(path)
+    os.makedirs(path)
     return path
 
 
@@ -61,7 +57,7 @@ def save_img_results(imgs_tcpu, fake_imgs, count, image_dir, nrow=8):
     num = cfg.TRAIN.VIS_COUNT*8888
 
     if imgs_tcpu is not None:
-        real_img = imgs_tcpu[:][0:num]
+        real_img = imgs_tcpu[:][:num]
         vutils.save_image(
             real_img, '%s/real_samples%09d.png' % (image_dir, count),
             scale_each=True, normalize=True, nrow=nrow)
@@ -73,7 +69,7 @@ def save_img_results(imgs_tcpu, fake_imgs, count, image_dir, nrow=8):
     if fake_imgs is not None:
         
         for i in range(len(fake_imgs)):
-            fake_img = fake_imgs[i][0:num]
+            fake_img = fake_imgs[i][:num]
 
             vutils.save_image(
                 fake_img.data, '%s/count_%09d_fake_samples%d.png' %
@@ -120,12 +116,12 @@ def cal_gradient_penalty(netD, real_data, fake_data, device, type='mixed', const
             alpha = alpha.to(device)
             interpolatesv.append(  alpha*real_data[i] + ((1-alpha)*fake_data[i])  )
     else:
-        raise NotImplementedError('{} not implemented'.format(type))
-    
+        raise NotImplementedError(f'{type} not implemented')
+
     # require grad
     for i in range( len(interpolatesv) ):
         interpolatesv[i].requires_grad_(True)
-    
+
     # feed into D
     disc_interpolates = netD(*interpolatesv)
 
@@ -140,7 +136,7 @@ def cal_gradient_penalty(netD, real_data, fake_data, device, type='mixed', const
             if gradients[0] is not None:  # it will return None if input is not used in this output (allow unused)
                 gradients = gradients[0].view(real_data[j].size(0), -1)  # flat the data
                 gradient_penalty += (((gradients + 1e-16).norm(2, dim=1) - constant) ** 2).mean()        # added eps
-        
+
     return gradient_penalty
 
 

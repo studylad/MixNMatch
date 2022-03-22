@@ -20,15 +20,15 @@ from random import sample
 import argparse
 
 
-device = torch.device("cuda:" + cfg.GPU_ID)
+device = torch.device(f"cuda:{cfg.GPU_ID}")
 gpus = [int(ix) for ix in cfg.GPU_ID.split(',')]
 
 
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--z",  help="path to z(pose) source image" )  
-parser.add_argument("--b",  help="path to b(background) source image" ) 
+parser.add_argument("--z",  help="path to z(pose) source image" )
+parser.add_argument("--b",  help="path to b(background) source image" )
 parser.add_argument("--p",  help="path to p(shape) source image" )
 parser.add_argument("--c",  help="path to c(texture) source image" )
 parser.add_argument("--out",  help="path to output image" )
